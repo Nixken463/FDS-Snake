@@ -142,9 +142,10 @@ class MAIN:
 
 
 def reset_game():
-    global main_game, game_active, current_speed
+    global main_game, game_active, current_speed, new_direction
     main_game = MAIN()
-    current_speed = 100
+    new_direction = main_game.snake.direction
+    current_speed = 140
     pygame.time.set_timer(SCREEN_UPDATE, current_speed)
     game_active = True
     name_system.NAME_INPUT_MODE = False
