@@ -17,7 +17,7 @@ class FRUIT:
 
     def randomize(self):
         self.x = random.randint(0, self.cell_number_x-1)
-        self.y = random.randint(0, self.cell_number_y-1)
+        self.y = random.randint(4, self.cell_number_y-1)
         self.position = Vector2(self.x, self.y)
 
         

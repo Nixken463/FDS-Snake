@@ -2,22 +2,7 @@ import pygame
 from pygame.math import Vector2
 from .get_asset_path import get_asset_path
 import json
-import asyncio
-import websockets
 
-def send_position_to_server(pos):
-    async def send():
-        uri = "ws://localhost:8765"
-        try:
-            async with websockets.connect(uri) as websocket:
-                # Convert the list of tuples to a JSON string to send it
-                await websocket.send(json.dumps(pos))
-        except ConnectionRefusedError:
-            # This will happen if the server isn't running.
-            # We'll just ignore it so the game doesn't crash.
-            pass
-    # Run the async function
-    asyncio.run(send())
 class SNAKE:
     def __init__(self ,screen, cell_size):
         self.screen = screen 
@@ -90,8 +75,6 @@ class SNAKE:
         self.body = c
         self.new_block = False
 
-        pos_to_send = [[int(vec.x), int(vec.y)] for vec in self.body]
-        #send_position_to_server(pos_to_send)
 
 
 
