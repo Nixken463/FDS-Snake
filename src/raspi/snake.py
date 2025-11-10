@@ -355,7 +355,179 @@ class Game:
         crown_height = int(self.cell_size * 1.5)
         scaled_crown = pygame.transform.scale(self.crown_image_for_score, (crown_width, crown_height))
         ar = scaled_crown.get_rect(midright=(bg.right - 10, bg.centery))
-        self.screen.blit(scaled_crown, ar)
+
+        screen.blit(scaled_crown, ar)
+
+    def game_over(self):
+        global game_active
+        game_active = False
+        current_score_val = len(self.snake.body) - 3
+        if self.db.in_top10(current_score_val):
+            name_system.initialize_state(current_score_val)
+
+
+def reset_game():
+    global main_game, game_active, current_speed, new_direction
+    main_game = MAIN()
+    new_direction = main_game.snake.direction
+    current_speed = 140
+    pygame.time.set_timer(SCREEN_UPDATE, current_speed)
+    game_active = True
+    name_system.NAME_INPUT_MODE = False
+
+
+def update_speed():
+    global current_speed, main_game
+    new_speed = max(75, 140 - (len(main_game.snake.body) - 3) * 5)
+    if new_speed != current_speed:
+        current_speed = new_speed
+        pygame.time.set_timer(SCREEN_UPDATE, current_speed)
+
+
+clock = pygame.time.Clock()
+main_game = MAIN()
+pygame.time.set_timer(SCREEN_UPDATE, current_speed)
+
+last_input_time = 0
+INPUT_DELAY = 20
+
+
+running = True
+new_direction = main_game.snake.direction
+while running:
+    current_time_ms = pygame.time.get_ticks()
+    processed_action_this_frame = False
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pass
+
+        if (
+            event.type == SCREEN_UPDATE
+            and game_active
+            and not name_system.NAME_INPUT_MODE
+        ):
+            main_game.snake.direction = new_direction
+            main_game.update()
+
+        if event.type == pygame.KEYDOWN:
+            if name_system.NAME_INPUT_MODE:
+                if current_time_ms - last_input_time >= INPUT_DELAY:
+                    result = name_system.process_input(event.key)
+                    if result:
+                        last_input_time = current_time_ms
+                        processed_action_this_frame = True
+                        if result == "NAME_ENTERED":
+                            player_name = name_system.get_name()
+                            print(
+                                f"Player: {player_name} | Score: {len(main_game.snake.body) - 3}"
+                            )
+                            reset_game()
+                        elif result == "ESC_PRESSED":
+                            pass
+            elif game_active:
+                if current_time_ms - last_input_time >= INPUT_DELAY:
+                    d = main_game.snake.direction
+                    action_taken_game = False
+                    if event.key == pygame.K_UP and d.y != 1:
+                        new_direction = Vector2(0, -1)
+                        action_taken_game = True
+                    elif event.key == pygame.K_RIGHT and d.x != -1:
+                        new_direction = Vector2(1, 0)
+                        action_taken_game = True
+                    elif event.key == pygame.K_DOWN and d.y != -1:
+                        new_direction = Vector2(0, 1)
+                        action_taken_game = True
+                    elif event.key == pygame.K_LEFT and d.x != 1:
+                        new_direction = Vector2(-1, 0)
+                        action_taken_game = True
+                    elif event.key == pygame.K_ESCAPE:
+                        pass
+                        action_taken_game = True
+
+                    if action_taken_game:
+                        last_input_time = current_time_ms
+                        processed_action_this_frame = True
+            else:
+                if event.key == pygame.K_ESCAPE:
+                    reset_game()
+                else:
+                    if not name_system.NAME_INPUT_MODE:
+                        reset_game()
+
+    if not processed_action_this_frame and (
+        current_time_ms - last_input_time >= INPUT_DELAY
+    ):
+        button_command = read_button_input()
+
+        if button_command:
+            if name_system.NAME_INPUT_MODE:
+                result = name_system.process_input(button_command)
+                if result:
+                    last_input_time = current_time_ms
+                    if result == "NAME_ENTERED":
+                        player_name = name_system.get_name()
+                        print(
+                            f"Player: {player_name} | Score: {len(main_game.snake.body) - 3}"
+                        )
+                        reset_game()
+                    elif result == "ESC_PRESSED":
+                        reset_game()
+            elif game_active:
+                d = main_game.snake.direction
+                action_taken_button = False
+                if button_command == "UP" and d.y != 1:
+                    new_direction = Vector2(0, -1)
+                    action_taken_button = True
+                elif button_command == "RIGHT" and d.x != -1:
+                    new_direction = Vector2(1, 0)
+                    action_taken_button = True
+                elif button_command == "DOWN" and d.y != -1:
+                    new_direction = Vector2(0, 1)
+                    action_taken_button = True
+                elif button_command == "LEFT" and d.x != 1:
+                    new_direction = Vector2(-1, 0)
+                    action_taken_button = True
+
+                if action_taken_button:
+                    last_input_time = current_time_ms
+            else:
+                if not name_system.NAME_INPUT_MODE:
+                    reset_game()
+
+    screen.fill((175, 215, 70))
+
+    if name_system.NAME_INPUT_MODE:
+        name_system.draw_ui(
+            screen, screen_width, screen_height, cell_size, game_font, get_asset_path
+        )
+    elif game_active:
+        main_game.draw_elements()
+    else:
+        screen.fill((0, 0, 0))
+        try:
+            go_t = pygame.font.Font(
+                get_asset_path("Font/PoetsenOne-Regular.ttf"), int(cell_size * 3.0)
+            )
+            go_m = pygame.font.Font(
+                get_asset_path("Font/PoetsenOne-Regular.ttf"), int(cell_size * 1.2)
+            )
+        except Exception as e:
+            print(f"DEBUG: Could not load custom font. Error: {e}")
+            go_t = pygame.font.SysFont("Arial", int(cell_size * 3.0))
+            go_m = pygame.font.SysFont("Arial", int(cell_size * 1.2))
+
+        ts = go_t.render("Game Over!", True, (190, 0, 0))
+        isf_text = "Drücke einen Knopf zum starten"
+        isf = go_m.render(isf_text, True, (200, 200, 200))
+
+        tr = ts.get_rect(center=(screen_width / 2, screen_height / 2 - cell_size * 2.5))
+        ir = isf.get_rect(
+            center=(screen_width / 2, screen_height / 2 + cell_size * 1.5)
+        )
+
+        screen.blit(ts, tr)
+        screen.blit(isf, ir)
 
 
 if __name__ == "__main__":
